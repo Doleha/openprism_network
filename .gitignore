@@ -10,6 +10,9 @@ fgcs_submission/
 docs/
 .texmf/
 
+# Local context/session files — kept local only
+CONTEXT.md
+
 # LaTeX build artifacts
 *.aux
 *.log
