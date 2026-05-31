@@ -7,96 +7,68 @@
 
 ---
 
-## Overview
+This repository accompanies a position and architecture paper proposing OpenPrism Network — an open, UMA-first distributed inference fabric for transformer-based LLMs. The paper claims no original experimental results and is explicit about what is working, what is estimated, and what is unsolved. This README is primarily an invitation to collaborate on the unsolved parts.
 
-Large-language-model (LLM) inference is increasingly concentrated in dedicated GPU data centres and closed API platforms, raising barriers for institutions that want to run, study, or contribute to AI infrastructure. OpenPrism Network is an open, UMA-first distributed inference architecture that enables smaller organizations to participate as operators, builders, and researchers rather than only as customers.
-
-### Key Design Decisions
-
-- **Static layer ownership** — transformer layers are statically owned by nodes so that weights stay resident; only activations transit the network.
-- **Blockchain restricted to settlement** — the blockchain layer handles reputation, settlement, and payment only, never compute.
-- **Tolerance-banded fingerprinting** — output integrity is established by multi-node redundancy with fingerprint comparison, not zero-knowledge proofs.
-- **Metro-area locality routing** — inference is kept within low-latency metro-area clusters.
-- **Scoped to batch/throughput workloads** — explicitly not a real-time inference network.
-
-### Deployment Models
-
-| Model | Description |
-|-------|-------------|
-| **Model 1 — Distributed Mesh** | Harvests idle institutional UMA capacity (lab workstations, teaching-cluster Macs, biotech machines already powered for a primary purpose). |
-| **Model 2 — UMA Micro Data Center** | Purpose-built facility deployable by resource-constrained organizations as a sovereign inference facility. |
+**Paper:** [10.5281/zenodo.20465112](https://doi.org/10.5281/zenodo.20465112)
 
 ---
 
-## Paper
+## Open Research Problems
 
-This repository accompanies the position and architecture paper:
+The paper identifies two problems that are central to the architecture and, to our knowledge, unsolved. We state them here in the hope that others will take them on.
 
-> Abdalla Doleh, "OpenPrism Network: An Open, UMA-First Architecture for Democratizing Distributed AI Inference," 2025.  
-> **Zenodo DOI:** [10.5281/zenodo.20465112](https://doi.org/10.5281/zenodo.20465112)
+### Problem I — Consensus for ML output verification under floating-point non-determinism
 
-The paper claims no original experimental results. All quantitative figures are drawn from publicly available benchmarks and published specifications, cited explicitly. Performance per watt is reported honestly — UMA nodes *lose* on operational efficiency against batched data-centre GPUs in the scoped regime. The architecture's advantage is on capital cost in the harvested-capacity model, on participation breadth, and on data sovereignty.
+The verification scheme compares outputs of $k$ independent computations and accepts on majority agreement. The difficulty is that "agreement" is not exact-match: the same model, given the same input, produces non-bitwise-identical logits across heterogeneous UMA hardware due to differing silicon generations, accelerator kernels, and floating-point reduction orders. Naive cryptographic fingerprinting therefore fails — honest nodes legitimately disagree at the bit level. Autoregressive decoding amplifies this: even a small per-step disagreement probability $\epsilon$ causes whole-sequence agreement to degrade roughly as $(1-\epsilon)^L$, so for any non-zero $\epsilon$ there is a horizon $L^*$ beyond which majority agreement breaks down without intermediate resynchronisation.
 
-### Open Research Problems
+**The open problem** is a consensus protocol that:
+- (a) canonicalises outputs into a representation stable across honest heterogeneous hardware,
+- (b) defines a tolerance band wide enough to admit honest floating-point variation yet narrow enough to reject a fabricated or substituted result,
+- (c) bounds autoregressive error amplification via intra-sequence checkpointing, and
+- (d) is cheap enough that verification cost does not dominate inference cost.
 
-The paper frames two genuinely unsolved problems:
+This is distinct from general blockchain consensus (ordering a ledger); the hard part is deciding whether two high-dimensional floating-point tensors represent "the same computation."
 
-1. A consensus protocol for ML output verification under floating-point non-determinism across heterogeneous UMA hardware.
-2. A stable, incentive-compatible tokenomics model for a permissionless inference network.
+### Problem II — Dynamic layer reassignment without full weight redistribution
 
----
+Static layer ownership is efficient while membership is stable: weights stay resident and only activations transit the network. The problem arises when a node owning layers $i$–$j$ departs — those layers must be served by another node, which naively requires transferring their full weights across the network, defeating the purpose of static ownership.
 
-## Repository Structure
-
-```
-openprism_network/
-├── README.md          — this file
-├── LICENSE            — Apache 2.0
-├── CITATION.cff       — machine-readable citation
-├── CONTRIBUTING.md    — contribution guide
-└── .gitignore         — excludes local submission dirs and build artifacts
-```
-
-Submission-ready LaTeX source (`zenodo_submission/`, `fgcs_submission/`) and journal template files are kept locally and excluded from this repository via `.gitignore`.
+**The open problem** is a reassignment protocol that rebalances ownership as membership changes while keeping weight movement sublinear in model size. Candidate directions include pre-staged replicas on a bounded number of standby nodes, erasure-coded layer shards reconstructable from survivors, and overlapping ownership regions that degrade gracefully. None of these is obviously optimal under realistic institutional churn rates.
 
 ---
 
-## Building the Paper
+## Community Benchmarks (Open Call)
 
-Requirements: `pdflatex`, `bibtex` (TeX Live 2023+ recommended).
+The paper frames three measurements that would independently validate or falsify the architecture's load-bearing claims. Each is scoped so that a single result — even from two nodes and a weekend — is useful and publishable on its own. **Results for any of F1–F3 will be cited back in future revisions.**
 
-```bash
-# Zenodo whitepaper (standard article class)
-cd zenodo_submission
-pdflatex openprism-whitepaper.tex
-pdflatex openprism-whitepaper.tex  # cross-references
+**(F1) Perf-per-watt under verification.**
+Does a $k=3$-verified UMA deployment come within $5\times$ of a batched-GPU baseline on the same model and quantisation? Published MLPerf-Inference v5.0 and community llama.cpp numbers put the unverified gap near one order of magnitude; a controlled run with a wall-power meter and the $\times 3$ verification overhead applied turns that into a real comparison.
 
-# FGCS journal submission (Elsevier CAS single-column)
-cd fgcs_submission
-pdflatex main.tex
-bibtex main
-pdflatex main.tex
-pdflatex main.tex
-```
+**(F2) Honest-replica disagreement ε.**
+What is $\epsilon$ between two Tier-1A nodes running identical greedy weights, and what per-token horizon $L^*$ does it imply for tolerance-band consensus? Equipment required: two nodes, the same model checkpoint, a 1k-prompt eval set, and token-by-token divergence logging. This is the cheapest of the three studies and the most informative — it independently validates or rules out the entire fingerprinting scheme.
 
-> **Note:** The FGCS build requires the Elsevier CAS template files (`cas-sc.cls`, `cas-common.sty`, `cas-model2-names.bst`, `thumbnails/`) from the [Elsevier CAS LaTeX templates](https://www.elsevier.com/researcher/author/tools-and-resources/latex). These are not redistributed here.
+**(F3) Churn re-dispatch overhead.**
+Under a controlled-churn workload, what fraction of completed-job energy is spent re-dispatching layer shards lost to node departures? Institutional churn-rate distributions from the volunteer-computing literature supply a defensible input; a small prototype supplies the dispatcher cost.
+
+Passes and failures are equally welcome. Open an issue to discuss methodology or share preliminary results.
 
 ---
 
-## Contributing
+## Other Contribution Areas
 
-See [CONTRIBUTING.md](CONTRIBUTING.md). Contributions welcome on:
+Beyond the open problems and benchmarks, contributions are welcome on:
 
-- Protocol design and formalization
-- Reference implementation components
-- Benchmark and evaluation methodology
-- Open research problems listed above
+- **Routing policy** — locality-aware scheduling, cluster formation, RTT measurement
+- **Node certification** — the tok/s/W benchmark harness and Tier-1A/1B classification criteria
+- **Reference runtime components** — activation-transit protocol, async queue, settlement event logs
+- **Tokenomics** — incentive-compatible economic model for a permissionless inference network (also genuinely unsolved)
+- **Corrections** — factual errors, broken citations, or unclear passages in the paper
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how to engage.
 
 ---
 
 ## Citation
-
-If you use this work, please cite using [CITATION.cff](CITATION.cff) or:
 
 ```bibtex
 @misc{doleh2025openprism,
@@ -110,17 +82,13 @@ If you use this work, please cite using [CITATION.cff](CITATION.cff) or:
 }
 ```
 
+Or use [CITATION.cff](CITATION.cff) for automated citation tools.
+
 ---
 
 ## License
 
 Protocol specification and reference components are released under the [Apache 2.0 License](LICENSE).
 
----
-
-## Author
-
-**Abdalla Doleh**  
-Department of Industrial & Systems Engineering, Wayne State University, Detroit, MI, USA  
-ORCID: [0009-0008-5192-2167](https://orcid.org/0009-0008-5192-2167)  
-Email: ai5145@wayne.edu
+**Abdalla Doleh** — Department of Industrial & Systems Engineering, Wayne State University  
+ORCID: [0009-0008-5192-2167](https://orcid.org/0009-0008-5192-2167) · ai5145@wayne.edu
