@@ -1,6 +1,11 @@
 # AI assistant context / session state — not part of the research record
 .context/
 
+# Paper submission directories — kept local only
+journal_templates/
+zenodo_submission/
+fgcs_submission/
+
 # LaTeX build artifacts
 *.aux
 *.log
