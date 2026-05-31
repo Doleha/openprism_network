@@ -6,6 +6,10 @@ journal_templates/
 zenodo_submission/
 fgcs_submission/
 
+# Local docs and TeX environment — kept local only
+docs/
+.texmf/
+
 # LaTeX build artifacts
 *.aux
 *.log
