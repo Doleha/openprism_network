@@ -1,0 +1,45 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+type: software
+title: "OpenPrism Network: An Open, UMA-First Architecture for Democratizing Distributed AI Inference"
+abstract: >
+  Position and architecture paper proposing OpenPrism Network — an open,
+  UMA-first distributed inference architecture for transformer-based LLMs.
+  The architecture features static layer ownership, blockchain-restricted-to-settlement,
+  tolerance-banded output fingerprinting, and metro-area locality routing.
+  Explicitly scoped to batch/throughput workloads. Two deployment models are
+  described: a distributed mesh harvesting idle institutional capacity, and a
+  purpose-built UMA micro data center for sovereign inference.
+authors:
+  - family-names: Doleh
+    given-names: Abdalla
+    orcid: "https://orcid.org/0009-0008-5192-2167"
+    email: ai5145@wayne.edu
+    affiliation: "Department of Industrial & Systems Engineering, Wayne State University, Detroit, MI, USA"
+doi: "10.5281/zenodo.20465112"
+url: "https://doi.org/10.5281/zenodo.20465112"
+repository-code: "https://github.com/Doleha/openprism_network"
+license: Apache-2.0
+version: "1.0.0"
+date-released: "2025-05-30"
+keywords:
+  - distributed inference
+  - large language models
+  - unified memory architecture
+  - UMA
+  - decentralized AI
+  - blockchain
+  - inference architecture
+  - position paper
+preferred-citation:
+  type: article
+  authors:
+    - family-names: Doleh
+      given-names: Abdalla
+      orcid: "https://orcid.org/0009-0008-5192-2167"
+      affiliation: "Department of Industrial & Systems Engineering, Wayne State University, Detroit, MI, USA"
+  title: "OpenPrism Network: An Open, UMA-First Architecture for Democratizing Distributed AI Inference"
+  year: 2025
+  doi: "10.5281/zenodo.20465112"
+  url: "https://doi.org/10.5281/zenodo.20465112"
+  notes: "Position and architecture paper. No original experimental results; all quantitative figures drawn from publicly available benchmarks and published specifications."
