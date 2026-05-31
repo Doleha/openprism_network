@@ -1,0 +1,13 @@
+# AI assistant context / session state — not part of the research record
+.context/
+
+# LaTeX build artifacts
+*.aux
+*.log
+*.toc
+*.bbl
+*.blg
+*.out
+*.synctex.gz
+*.fdb_latexmk
+*.fls
